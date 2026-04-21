@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>النباتات — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">النباتات</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">النباتات</h1>
+                <p class="fb-page-lead">عرض وإضافة وتعديل نباتات المستخدمين.</p>
+
+                <div class="fb-card" id="plantsPanel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <h2 class="fb-card__title" style="margin:0;">القائمة</h2>
+                        <button type="button" class="btn btn-primary" onclick="showAddForm()"><span class="btn__label">إضافة نبتة</span></button>
+                    </div>
+                    <div id="plantsList" style="margin-top:16px;"></div>
+                </div>
+
+                <div id="plantFormModal" class="fb-card" style="display: none;">
+                    <h2 class="fb-card__title" id="formTitle">إضافة نبتة</h2>
+                    <form id="plantForm">
+                        <input type="hidden" id="plantId">
+                        <div class="form-group">
+                            <label for="plantName">اسم النبات</label>
+                            <input type="text" id="plantName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="plantType">النوع</label>
+                            <select id="plantType">
+                                <option value="داخلي">داخلي</option>
+                                <option value="زينة">زينة</option>
+                                <option value="أعشاب">أعشاب</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="wateringDays">أيام الري</label>
+                            <input type="number" id="wateringDays" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fertilizingDays">أيام التسميد</label>
+                            <input type="number" id="fertilizingDays" min="1" required>
+                        </div>
+                        <div class="form-group" id="userIdGroup">
+                            <label for="userId">المستخدم</label>
+                            <select id="userId"></select>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><span class="btn__label">حفظ</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="hideForm()" style="margin-right: 12px;">إلغاء</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+        var meCtx = { userId: null };
+
+        async function loadUsersSelect() {
+            const res = await fetch(API + '/api/users', { credentials: 'include' });
+            if (!res.ok) return;
+            const users = await res.json();
+            const sel = document.getElementById('userId');
+            sel.innerHTML = users.map(function (u) {
+                return '<option value="' + u.id + '">' + u.name + '</option>';
+            }).join('');
+        }
+
+        async function loadPlants() {
+            try {
+                const res = await fetch(API + '/api/plants', { credentials: 'include' });
+                if (res.status === 403) {
+                    document.getElementById('plantsList').innerHTML = '<p>طلب مرفوض.</p>';
+                    return;
+                }
+                const plants = await res.json();
+                renderPlants(plants);
+            } catch (err) {
+                document.getElementById('plantsList').innerHTML = '<p>خطأ اتصال.</p>';
+            }
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        function renderPlants(plants) {
+            if (!plants.length) {
+                document.getElementById('plantsList').innerHTML = '<p>لا توجد نباتات.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>الاسم</th><th>النوع</th><th>الري</th><th>التسميد</th><th>آخر ري</th><th>آخر تسميد</th><th></th></tr></thead><tbody>';
+            plants.forEach(function (p) {
+                html += '<tr><td>' + esc(p.name) + '</td><td>' + esc(p.type) + '</td><td>' + p.watering_interval_days + '</td><td>' + p.fertilizing_interval_days + '</td>';
+                html += '<td>' + esc(p.last_watering_date || '-') + '</td><td>' + esc(p.last_fertilizing_date || '-') + '</td>';
+                html += '<td class="actions-cell"><a href="plant_details.html?id=' + p.id + '" class="btn btn-secondary">تفاصيل</a> ';
+                html += '<button class="btn btn-secondary" onclick="editPlant(' + p.id + ')">تعديل</button> ';
+                html += '<button class="btn btn-danger" onclick="deletePlant(' + p.id + ')">حذف</button></td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('plantsList').innerHTML = html;
+        }
+
+        function showAddForm() {
+            document.getElementById('formTitle').textContent = 'إضافة نبتة';
+            document.getElementById('plantForm').reset();
+            document.getElementById('plantId').value = '';
+            loadUsersSelect().then(function () {
+                if (meCtx.userId) document.getElementById('userId').value = String(meCtx.userId);
+            });
+            document.getElementById('plantFormModal').style.display = 'block';
+        }
+
+        async function editPlant(id) {
+            const res = await fetch(API + '/api/plants/' + id);
+            const p = await res.json();
+            document.getElementById('formTitle').textContent = 'تعديل نبتة';
+            document.getElementById('plantId').value = p.id;
+            document.getElementById('plantName').value = p.name;
+            document.getElementById('plantType').value = p.type;
+            document.getElementById('wateringDays').value = p.watering_interval_days;
+            document.getElementById('fertilizingDays').value = p.fertilizing_interval_days;
+            await loadUsersSelect();
+            document.getElementById('userId').value = String(p.user_id);
+            document.getElementById('plantFormModal').style.display = 'block';
+        }
+
+        function hideForm() {
+            document.getElementById('plantFormModal').style.display = 'none';
+        }
+
+        document.getElementById('plantForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('plantId').value;
+            const uid = parseInt(document.getElementById('userId').value, 10);
+            const data = {
+                user_id: uid,
+                name: document.getElementById('plantName').value,
+                type: document.getElementById('plantType').value,
+                watering_interval_days: parseInt(document.getElementById('wateringDays').value, 10),
+                fertilizing_interval_days: parseInt(document.getElementById('fertilizingDays').value, 10)
+            };
+            try {
+                const hdr = { 'Content-Type': 'application/json', 'X-User-Id': String(meCtx.userId) };
+                if (id) {
+                    await fetch(API + '/api/plants/' + id, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: hdr,
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    await fetch(API + '/api/plants', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: hdr,
+                        body: JSON.stringify(data)
+                    });
+                }
+                hideForm();
+                loadPlants();
+            } catch (err) {
+                alert('حدث خطأ');
+            }
+        });
+
+        async function deletePlant(id) {
+            if (!confirm('حذف هذه النبتة؟')) return;
+            const headers = { 'X-User-Id': String(meCtx.userId) };
+            const res = await fetch(API + '/api/plants/' + id, { method: 'DELETE', credentials: 'include', headers: headers });
+            const j = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                alert(j.error || 'فشل الحذف');
+                return;
+            }
+            loadPlants();
+        }
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('plants', me);
+            FlorabitWeb.renderFooter();
+            meCtx.userId = me.user && me.user.id;
+            try { localStorage.setItem('user', JSON.stringify(me.user)); } catch (e) {}
+            loadPlants();
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

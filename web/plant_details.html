@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل النبتة — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">تفاصيل النبتة</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <div class="fb-card" id="plantInfo">
+                    <h1 class="fb-page-title" id="plantName"></h1>
+                    <p id="plantDetails"></p>
+                    <div id="careGuide" style="margin: 20px 0; padding: 18px; background: var(--fb-green-soft); border-radius: var(--fb-radius-sm); border: 1px solid var(--fb-border);"></div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-primary" id="waterBtn"><span class="btn__label">تم الري</span></button>
+                        <button type="button" class="btn btn-secondary" id="fertilizeBtn"><span class="btn__label">تم التسميد</span></button>
+                    </div>
+                </div>
+                <div class="fb-card">
+                    <h2 class="fb-card__title">سجل العناية</h2>
+                    <div id="careLogs"></div>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+        const params = new URLSearchParams(window.location.search);
+        const plantId = params.get('id');
+
+        function actLabel(t) {
+            if (t === 'watering') return 'ري';
+            if (t === 'fertilizing') return 'تسميد';
+            if (t === 'lighting') return 'إضاءة';
+            return t;
+        }
+
+        async function postCare(path) {
+            const res = await fetch(API + path, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+            });
+            if (!res.ok) {
+                let msg = 'فشل';
+                try {
+                    const j = await res.json();
+                    if (j.error) msg = j.error;
+                } catch (e) {}
+                alert(msg);
+                return false;
+            }
+            return true;
+        }
+
+        const typeGuides = {
+            'داخلي': 'إضاءة غير مباشرة، تهوية، تجنب شمس مباشرة.',
+            'زينة': 'عناية منتظمة، تقليم الأزهار الذابلة، تصريف جيد.',
+            'أعشاب': 'ضوء كافٍ، ري عند جفاف التربة السطحية.'
+        };
+
+        async function loadPlant() {
+            if (!plantId) { window.location.href = 'plants.html'; return; }
+            const res = await fetch(API + '/api/plants/' + plantId, { credentials: 'include' });
+            const plant = await res.json();
+            document.getElementById('plantName').textContent = plant.name;
+            document.getElementById('plantDetails').innerHTML =
+                '<strong>النوع:</strong> ' + plant.type + '<br>' +
+                '<strong>الري:</strong> كل ' + plant.watering_interval_days + ' يوماً<br>' +
+                '<strong>التسميد:</strong> كل ' + plant.fertilizing_interval_days + ' يوماً<br>' +
+                '<strong>آخر ري:</strong> ' + (plant.last_watering_date || '-') + '<br>' +
+                '<strong>آخر تسميد:</strong> ' + (plant.last_fertilizing_date || '-');
+            document.getElementById('careGuide').textContent = typeGuides[plant.type] || '';
+        }
+
+        async function loadCareLogs() {
+            const res = await fetch(API + '/api/care-logs?plant_id=' + encodeURIComponent(plantId), { credentials: 'include' });
+            const logs = await res.json();
+            if (!logs.length) {
+                document.getElementById('careLogs').innerHTML = '<p>لا سجلات.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>التاريخ</th><th>النوع</th><th>ملاحظات</th></tr></thead><tbody>';
+            logs.forEach(function (l) {
+                html += '<tr><td>' + l.action_date + '</td><td>' + actLabel(l.action_type) + '</td><td>' + (l.notes || '-') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('careLogs').innerHTML = html;
+        }
+
+        document.getElementById('waterBtn').addEventListener('click', async function () {
+            if (await postCare('/api/plants/' + plantId + '/water')) {
+                loadPlant();
+                loadCareLogs();
+            }
+        });
+
+        document.getElementById('fertilizeBtn').addEventListener('click', async function () {
+            if (await postCare('/api/plants/' + plantId + '/fertilize')) {
+                loadPlant();
+                loadCareLogs();
+            }
+        });
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('plants', me);
+            FlorabitWeb.renderFooter();
+            loadPlant();
+            loadCareLogs();
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

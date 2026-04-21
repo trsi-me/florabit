@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كتالوج النباتات — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">مرجع النباتات</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">كتالوج النباتات العربي</h1>
+                <p class="fb-page-lead">مرجع من الخادم: فترات، إضاءة، ونصائح.</p>
+                <div id="catalogGrid" class="fb-grid-cards"></div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('catalog', me);
+            FlorabitWeb.renderFooter();
+            try {
+                const res = await fetch(API + '/api/plant-catalog');
+                const list = await res.json();
+                let html = '';
+                list.forEach(function (c) {
+                    html += '<div class="fb-card fb-card--lift">';
+                    html += '<div class="fb-card__title">' + esc(c.name) + '</div>';
+                    html += '<div style="font-size:0.9rem;color:var(--fb-muted);margin-bottom:10px">' + esc(c.type) + ' · ' + esc(c.indoor_outdoor);
+                    if (c.care_level) html += ' · صعوبة: ' + esc(c.care_level);
+                    html += '</div>';
+                    if (c.city_regions && c.city_regions.length) {
+                        html += '<p style="font-size:0.85rem;color:var(--fb-muted);margin-bottom:8px">مناطق مناسبة: ' + esc(c.city_regions.join('، ')) + '</p>';
+                    }
+                    if (c.suitable_cities && c.suitable_cities.length && c.suitable_cities.length <= 12) {
+                        html += '<p style="font-size:0.82rem;color:var(--fb-muted);margin-bottom:8px">مدن: ' + esc(c.suitable_cities.join('، ')) + '</p>';
+                    } else if (c.suitable_cities && c.suitable_cities.length > 12) {
+                        html += '<p style="font-size:0.82rem;color:var(--fb-muted);margin-bottom:8px">مدن: مناسب لمعظم مدن المملكة (' + c.suitable_cities.length + ' مدينة في القائمة)</p>';
+                    }
+                    html += '<p style="font-size:0.92rem;line-height:1.7">ري كل <strong>' + esc(c.watering_days) + '</strong> يوماً، تسميد كل <strong>' + esc(c.fertilizing_days) + '</strong> يوماً.</p>';
+                    if (c.light_requirement) html += '<p style="margin-top:8px;font-size:0.88rem;color:var(--fb-muted)">إضاءة: ' + esc(c.light_requirement) + '</p>';
+                    if (c.smart_tip) html += '<p style="margin-top:12px;padding:12px;background:var(--fb-green-soft);border-radius:12px;font-size:0.9rem">' + esc(c.smart_tip) + '</p>';
+                    html += '</div>';
+                });
+                document.getElementById('catalogGrid').innerHTML = html || '<p>لا بيانات.</p>';
+            } catch (e) {
+                document.getElementById('catalogGrid').innerHTML = '<p>تعذر تحميل الكتالوج.</p>';
+            }
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

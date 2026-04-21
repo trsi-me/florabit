@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل العناية — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">سجل العناية</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">سجل العناية</h1>
+                <p class="fb-page-lead">جميع سجلات الري والتسميد والإضاءة.</p>
+                <div class="fb-card">
+                    <div id="logsList"></div>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+
+        function actionLabel(t) {
+            if (t === 'watering') return 'ري';
+            if (t === 'fertilizing') return 'تسميد';
+            if (t === 'lighting') return 'إضاءة';
+            return t;
+        }
+
+        async function loadLogs() {
+            const res = await fetch(API + '/api/care-logs', { credentials: 'include' });
+            if (res.status === 403) {
+                document.getElementById('logsList').innerHTML = '<p>—</p>';
+                return;
+            }
+            const logs = await res.json();
+            const pres = await fetch(API + '/api/plants', { credentials: 'include' });
+            const plants = pres.ok ? await pres.json() : [];
+            const plantMap = {};
+            plants.forEach(function (p) { plantMap[p.id] = p.name; });
+            if (!logs.length) {
+                document.getElementById('logsList').innerHTML = '<p>لا توجد سجلات.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>#</th><th>النبتة</th><th>النوع</th><th>التاريخ</th><th>ملاحظات</th></tr></thead><tbody>';
+            logs.forEach(function (l) {
+                html += '<tr><td>' + l.id + '</td><td>' + (plantMap[l.plant_id] || l.plant_id) + '</td><td>' + actionLabel(l.action_type) + '</td><td>' + l.action_date + '</td><td>' + (l.notes || '-') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('logsList').innerHTML = html;
+        }
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('care_logs', me);
+            FlorabitWeb.renderFooter();
+            loadLogs();
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

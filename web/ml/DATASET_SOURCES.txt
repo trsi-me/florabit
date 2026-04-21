@@ -1,0 +1,48 @@
+مصادر داتاسيت مناسبة لتدريب نماذج التعرف على النباتات (مرجع سريع لفريق فلورابيت)
+================================================================================
+
+1) flower_photos (TensorFlow / Google)
+   - وصف: صور زهور بخمس فئات (daisy, dandelion, roses, sunflowers, tulips).
+   - الرابط المباشر للأرشيف:
+     https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz
+   - الاستخدام الحالي: مشروعك يعتمد عليه في train_plant_classifier.py مع RandomForest على ميزات لونية.
+
+2) Plant Village (أوراق — أمراض / أنواع)
+   - مستودع GitHub (مجلدات raw/color):
+     https://github.com/spMohanty/PlantVillage-Dataset
+   - مناسب لتصنيف أمراض الأوراق أو تمييز أنواع محاصيل؛ حجم كبير — يُنزَّل جزئياً حسب الحاجة.
+
+3) Oxford Flowers 102 (TensorFlow Datasets)
+   - وصف: 102 فئة زهور، صور حقيقية متعددة.
+   - البحث: tensorflow datasets oxford_flowers102
+   - مناسب لرفع عدد الفئات لاحقاً مع نموذج CNN أو Transfer Learning.
+
+4) Kaggle — Plant / Leaf datasets
+   - ابحث داخل Kaggle عن: "plant classification", "leaf classification", "indoor plants".
+   - أمثلة شائعة: مجموعات أوراق أو نباتات منزلية بصيغة مجلدات لكل فئة (مناسبة لـ ImageFolder في PyTorch أو flow_from_directory في Keras).
+
+5) Hugging Face — image classification datasets
+   - https://huggingface.co/datasets
+   - فلترة بـ task: image-classification وكلمة plant أو flower.
+
+ملاحظة: أي داتاسيت جديدة تحتاج توحيد حجم الصور، تقسيم train/validation، وربط تسميات الإنجليزية بأسماء الكتالوج العربي في flower_class_map.json أو ملف مشابه.
+
+
+================================================================================
+التوصية لمشروع التخرّج (هل الداتاسيت «كافية»؟)
+================================================================================
+
+• الأنسب للعرض والدفاع الأكاديمي: دمج مسارين واضحين في التقرير:
+  (أ) مجموعة flower_photos أعلاه — حقيقية، موثقة، من مصدر TensorFlow، مناسبة لإثبات
+      pipeline التدريب + تقييم (Accuracy / F1 / مصفوفة ارتباك).
+  (ب) طبقة إضافية (اختيارية لكن مميزة): تدريب نموذج CNN أو Transfer Learning
+      (مثلاً MobileNet) على Oxford Flowers 102 أو جزء من Plant Village —
+      يعطي عمقاً أكبر ومراجع علمية أكثر في الفصل النظري.
+
+• هل flower_photos وحدها «كافية»؟ نعم كحد أدنى لمشروع تطبيقي + تعلم آلي
+  إذا وثّقت المنهجية (الميزات، النموذج، النتائج، القيود) وشرحت أن التعرف
+  يُربط بالكتالوج العربي عبر flower_class_map.json. للتفوق: أضف فئةً أو
+  مقياساً ثانياً أو مقارنة مع نموذج أعمق.
+
+• ترتيب مقترح للكتابة: المشكلة → المدخلات (الداتاسيت) → المعالجة → المخرجات
+  → التقييم → حدود العمل → التحسين المستقبلي (Oxford 102 / Plant Village).

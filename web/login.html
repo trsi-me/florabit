@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل دخول — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="login.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="فلورابيت">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">لوحة الإدارة</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-login-hero fb-stagger">
+                <div class="fb-login-visual">
+                    <img src="assets/images/Logo.png" alt="">
+                    <h2>لوحة الإدارة</h2>
+                    <p>بعد تسجيل الدخول تُفتح لوحة تحكم متقدمة.</p>
+                </div>
+                <div class="fb-card fb-card--lift">
+                    <h2 class="fb-page-title" style="margin-bottom: 6px;">تسجيل دخول</h2>
+                    <p id="loginErr" class="fb-page-lead" style="color: var(--fb-danger); min-height: 1.2em; margin-bottom: 16px;"></p>
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="email">البريد</label>
+                            <input type="email" id="email" name="email" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">كلمة المرور</label>
+                            <input type="password" id="password" name="password" required minlength="4" autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn--block">تسجيل دخول</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        FlorabitWeb.mountGuestNav('login');
+        FlorabitWeb.renderFooter();
+
+        const API = FlorabitWeb.API;
+
+        FlorabitWeb.authMe().then(function (me) {
+            if (me.logged_in && me.role === 'admin') window.location.replace('dashboard.html');
+            else if (me.logged_in) FlorabitWeb.logout();
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            document.getElementById('loginErr').textContent = '';
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch(API + '/api/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    document.getElementById('loginErr').textContent = data.error || 'فشل الدخول';
+                    return;
+                }
+                if (data.role !== 'admin') {
+                    await fetch(API + '/api/logout', { method: 'POST', credentials: 'include' });
+                    try { localStorage.removeItem('user'); } catch (err) {}
+                    document.getElementById('loginErr').textContent = 'غير مصرّح';
+                    return;
+                }
+                try { localStorage.setItem('user', JSON.stringify(data)); } catch (err) {}
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                document.getElementById('loginErr').textContent = 'الخادم غير متاح';
+            }
+        });
+    </script>
+</body>
+</html>

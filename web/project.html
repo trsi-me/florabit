@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نبذة عن المشروع — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="project.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="فلورابيت">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">نبذة عملية</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-card" style="max-width: 720px; margin: 0 auto;">
+                <h1 class="fb-page-title">فلورابيت — ماذا يفعل؟</h1>
+                <p class="fb-page-lead">نظام عملي لمن يريد العناية بالنباتات المنزلية دون فوضى المواعيد.</p>
+
+                <h3>للمستخدم</h3>
+                <p>تطبيق جوال يسجّل نباتاتك، يذكّرك بالري والتسميد، ويعرض كتالوجاً وتوصياتاً حسب بيئتك، مع إمكانية التعرف على النبتة من صورة بمساعدة نموذج تعلّم آلي.</p>
+
+                <h3>للمسؤول</h3>
+                <p>لوحة ويب تربط نفس قاعدة البيانات: مستخدمون، نباتات، سجلات عناية، وتقارير مواعيد، دون أن يحتاج المستخدم العادي لفتح المتصفح.</p>
+
+                <h3>الخلفية التقنية</h3>
+                <p>خادم Flask يقدّم REST API، SQLite للتخزين، ونموذج تصنيف اختياري للصور بعد التدريب. كل ذلك يعمل معاً لتجربة عربية واحدة.</p>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        FlorabitWeb.mountGuestNav('project');
+        FlorabitWeb.renderFooter();
+    </script>
+</body>
+</html>

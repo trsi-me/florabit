@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">لوحة التحكم</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">لوحة التحكم</h1>
+                <p class="fb-page-lead" id="pageLead"></p>
+
+                <div class="fb-grid-2">
+                    <div class="fb-card">
+                        <h2 class="fb-card__title"><i class="fa-solid fa-bell fb-fa" style="margin-left:8px;"></i>إشعارات (محاكاة)</h2>
+                        <p class="fb-card__sub">تُخزَّن محلياً في المتصفح — عرض، تمييز مقروء، أو حذف.</p>
+                        <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;">
+                            <button type="button" class="btn btn-secondary" id="notifAddDemo"><span class="btn__label">إضافة تجريبية</span></button>
+                            <button type="button" class="btn btn-secondary" id="notifReset"><span class="btn__label">استعادة الافتراضي</span></button>
+                        </div>
+                        <div id="notifPanel" class="fb-notif-panel"></div>
+                    </div>
+                    <div class="fb-card">
+                        <h2 class="fb-card__title">مؤشرات النظام</h2>
+                        <p class="fb-card__sub">من قاعدة البيانات.</p>
+                        <div class="fb-stats">
+                            <div class="fb-stat">
+                                <div class="fb-stat__value" id="statUsers">—</div>
+                                <div class="fb-stat__label">مستخدمون</div>
+                            </div>
+                            <div class="fb-stat">
+                                <div class="fb-stat__value" id="statPlants">—</div>
+                                <div class="fb-stat__label">نباتات</div>
+                            </div>
+                            <div class="fb-stat">
+                                <div class="fb-stat__value" id="statLogs">—</div>
+                                <div class="fb-stat__label">سجلات عناية</div>
+                            </div>
+                            <div class="fb-stat">
+                                <div class="fb-stat__value" id="statSuspended">—</div>
+                                <div class="fb-stat__label">موقوف / معلّق</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fb-chart-grid">
+                    <div class="fb-card">
+                        <h2 class="fb-card__title">توزيع نوع العناية (دائري)</h2>
+                        <div class="fb-pie-wrap">
+                            <div class="fb-pie" id="pieEl" style="background:#e0e0e0;"></div>
+                            <div class="fb-pie-legend" id="pieLegend"></div>
+                        </div>
+                    </div>
+                    <div class="fb-card">
+                        <h2 class="fb-card__title">نشاط السجلات (14 يوماً)</h2>
+                        <p class="fb-card__sub">خط زمني لعدد السجلات يومياً — مرّر داخل الحاوية أو استخدم «عرض الكل».</p>
+                        <div class="fb-line-chart" id="lineChart"></div>
+                    </div>
+                    <div class="fb-card">
+                        <h2 class="fb-card__title">أنواع العناية (أشرطة أفقية)</h2>
+                        <div class="fb-hbars" id="hBars"></div>
+                    </div>
+                    <div class="fb-card">
+                        <h2 class="fb-card__title">مقارنة أحجام (أعمدة)</h2>
+                        <p class="fb-card__sub">مستخدمون / نباتات / سجلات.</p>
+                        <div class="fb-bars" id="adminBars"></div>
+                    </div>
+                </div>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">تحليل المستخدمين (نظرة سريعة)</h2>
+                    <p class="fb-card__sub">رسوم بيانية من قاعدة البيانات — التفاصيل الكاملة في صفحة التقارير.</p>
+                    <div id="userAnalyticsDash"></div>
+                </div>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">اختصارات</h2>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;">
+                        <a href="users.html" class="btn btn-primary"><span class="btn__label">المستخدمون</span></a>
+                        <a href="plants.html" class="btn btn-secondary"><span class="btn__label">النباتات</span></a>
+                        <a href="care_logs.html" class="btn btn-secondary"><span class="btn__label">سجل العناية</span></a>
+                        <a href="reports.html" class="btn btn-secondary"><span class="btn__label">التقارير</span></a>
+                        <a href="catalog.html" class="btn btn-secondary"><span class="btn__label">الكتالوج</span></a>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+        const NOTIF_KEY = 'florabit_admin_notifications_v1';
+
+        function defaultNotifs() {
+            return [
+                { id: 'n1', title: 'تنبيه ري', body: 'هناك نباتات قاربت موعد الري — راجع التقارير.', at: '2026-03-27 08:30', read: false },
+                { id: 'n2', title: 'نسخ احتياطي', body: 'تذكير: تصدير نسخة من قاعدة البيانات دورياً.', at: '2026-03-26 14:00', read: true },
+                { id: 'n3', title: 'مستخدم جديد', body: 'تسجيل عبر التطبيق يظهر في قائمة المستخدمين.', at: '2026-03-25 11:20', read: false }
+            ];
+        }
+
+        function loadNotifs() {
+            try {
+                var raw = localStorage.getItem(NOTIF_KEY);
+                if (!raw) {
+                    var d = defaultNotifs();
+                    localStorage.setItem(NOTIF_KEY, JSON.stringify(d));
+                    return d;
+                }
+                return JSON.parse(raw);
+            } catch (e) {
+                return defaultNotifs();
+            }
+        }
+
+        function saveNotifs(arr) {
+            localStorage.setItem(NOTIF_KEY, JSON.stringify(arr));
+            renderNotifs();
+        }
+
+        function renderNotifs() {
+            var arr = loadNotifs();
+            var el = document.getElementById('notifPanel');
+            if (!arr.length) {
+                el.innerHTML = '<div class="fb-notif-item"><span style="color:var(--fb-muted)">لا إشعارات.</span></div>';
+                return;
+            }
+            el.innerHTML = arr.map(function (n) {
+                var cls = 'fb-notif-item' + (n.read ? ' is-read' : '');
+                return '<div class="' + cls + '" data-id="' + n.id + '">' +
+                    '<div class="fb-notif-item__title">' + esc(n.title) + '</div>' +
+                    '<div class="fb-notif-item__body">' + esc(n.body) + '</div>' +
+                    '<div class="fb-notif-item__meta">' + esc(n.at) + '</div>' +
+                    '<div class="fb-notif-actions">' +
+                    '<button type="button" class="btn btn-secondary notif-read" data-id="' + n.id + '">مقروء</button>' +
+                    '<button type="button" class="btn btn-danger notif-del" data-id="' + n.id + '">حذف</button>' +
+                    '</div></div>';
+            }).join('');
+            el.querySelectorAll('.notif-read').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = btn.getAttribute('data-id');
+                    var a = loadNotifs().map(function (x) {
+                        if (x.id === id) x.read = true;
+                        return x;
+                    });
+                    saveNotifs(a);
+                });
+            });
+            el.querySelectorAll('.notif-del').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = btn.getAttribute('data-id');
+                    saveNotifs(loadNotifs().filter(function (x) { return x.id !== id; }));
+                });
+            });
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('notifAddDemo').addEventListener('click', function () {
+            var a = loadNotifs();
+            a.unshift({
+                id: 'n' + Date.now(),
+                title: 'إشعار تجريبي',
+                body: 'نص وهمي لاختبار القائمة.',
+                at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                read: false
+            });
+            saveNotifs(a);
+        });
+
+        document.getElementById('notifReset').addEventListener('click', function () {
+            localStorage.setItem(NOTIF_KEY, JSON.stringify(defaultNotifs()));
+            renderNotifs();
+        });
+
+        function setBars(users, plants, logs) {
+            var max = Math.max(users, plants, logs, 1);
+            var barMaxPx = 112;
+            var h = function (v) { return Math.max(6, Math.round((v / max) * barMaxPx)); };
+            var el = document.getElementById('adminBars');
+            el.innerHTML =
+                '<div class="fb-bar-wrap"><div class="fb-bar" style="height:' + h(users) + 'px"></div><span class="fb-bar-label">مستخدمون<br><strong>' + users + '</strong></span></div>' +
+                '<div class="fb-bar-wrap"><div class="fb-bar" style="height:' + h(plants) + 'px"></div><span class="fb-bar-label">نباتات<br><strong>' + plants + '</strong></span></div>' +
+                '<div class="fb-bar-wrap"><div class="fb-bar" style="height:' + h(logs) + 'px"></div><span class="fb-bar-label">سجلات<br><strong>' + logs + '</strong></span></div>';
+        }
+
+        function applyPie(by) {
+            var w = by.watering || 0;
+            var f = by.fertilizing || 0;
+            var l = by.lighting || 0;
+            var t = w + f + l;
+            var pie = document.getElementById('pieEl');
+            var leg = document.getElementById('pieLegend');
+            if (!t) {
+                pie.style.background = '#e8e8e8';
+                leg.innerHTML = '<span>لا بيانات</span>';
+                return;
+            }
+            var pw = (w / t) * 100;
+            var pf = (f / t) * 100;
+            var pl = (l / t) * 100;
+            var a0 = 0;
+            var a1 = a0 + pw;
+            var a2 = a1 + pf;
+            pie.style.background = 'conic-gradient(#2d7a52 0% ' + a1 + '%, #1565c0 ' + a1 + '% ' + a2 + '%, #ef6c00 ' + a2 + '% 100%)';
+            leg.innerHTML =
+                '<span><i style="background:#2d7a52"></i>ري ' + w + '</span>' +
+                '<span><i style="background:#1565c0"></i>تسميد ' + f + '</span>' +
+                '<span><i style="background:#ef6c00"></i>إضاءة ' + l + '</span>';
+        }
+
+        function applyHbars(by) {
+            var w = by.watering || 0;
+            var f = by.fertilizing || 0;
+            var l = by.lighting || 0;
+            var t = Math.max(w, f, l, 1);
+            var rows = [
+                { label: 'ري', v: w },
+                { label: 'تسميد', v: f },
+                { label: 'إضاءة', v: l }
+            ];
+            document.getElementById('hBars').innerHTML = rows.map(function (r) {
+                var pct = Math.round((r.v / t) * 100);
+                return '<div class="fb-hbar-row"><span>' + r.label + '</span><div class="fb-hbar-track"><div class="fb-hbar-fill" style="width:' + pct + '%"></div></div><span>' + r.v + '</span></div>';
+            }).join('');
+        }
+
+        function applyLine(daily) {
+            var days = [];
+            for (var i = 13; i >= 0; i--) {
+                var d = new Date();
+                d.setDate(d.getDate() - i);
+                days.push(d.toISOString().slice(0, 10));
+            }
+            var map = {};
+            daily.forEach(function (x) { map[x.date] = x.count; });
+            var vals = days.map(function (d) { return map[d] || 0; });
+            var mx = Math.max.apply(null, vals.concat([1]));
+            var pts = vals.map(function (v, i) {
+                var x = vals.length <= 1 ? 50 : (i / (vals.length - 1)) * 100;
+                var y = 38 - (v / mx) * 34;
+                return x + ',' + y;
+            }).join(' ');
+            var ptsFill = '0,40 ' + pts + ' 100,40';
+            var cells = days.map(function (d) {
+                var v = map[d] || 0;
+                var p = d.split('-');
+                var label = p[2] + '/' + p[1];
+                var ylbl = p[0];
+                return '<div class="fb-timeline-cell"><span class="fb-timeline-cell__ym">' + ylbl + '</span><span class="fb-timeline-cell__date">' + label + '</span><span class="fb-timeline-cell__n">' + v + ' سجل</span></div>';
+            }).join('');
+            document.getElementById('lineChart').innerHTML =
+                '<div class="fb-line-chart__svg">' +
+                '<svg viewBox="0 0 100 40" preserveAspectRatio="none">' +
+                '<polygon class="fb-line-fill" fill="var(--fb-green-mid)" points="' + ptsFill + '"/>' +
+                '<polyline fill="none" stroke="var(--fb-green-deep)" stroke-width="0.9" points="' + pts + '"/>' +
+                '</svg></div>' +
+                '<div class="fb-timeline-panel">' +
+                '<div class="fb-timeline-scroll" tabindex="0">' +
+                '<div class="fb-timeline-grid">' + cells + '</div></div>' +
+                '<button type="button" class="btn btn-secondary fb-timeline-toggle" aria-expanded="false">' +
+                '<span class="btn__label">عرض الكل</span></button>' +
+                '</div>';
+            FlorabitWeb.bindTimelineExpand(document.getElementById('lineChart'));
+        }
+
+        (async function () {
+            var me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('dashboard', me);
+            FlorabitWeb.renderFooter();
+            renderNotifs();
+            try { localStorage.setItem('user', JSON.stringify(me.user)); } catch (e) {}
+
+            var name = (me.user && me.user.name) ? me.user.name : '';
+            document.getElementById('pageLead').textContent = name ? ('مرحباً ' + name + '.') : '';
+
+            try {
+                var res = await fetch(API + '/api/admin/stats', { credentials: 'include' });
+                if (res.ok) {
+                    var s = await res.json();
+                    var u = s.users != null ? s.users : 0;
+                    var p = s.plants != null ? s.plants : 0;
+                    var l = s.care_logs != null ? s.care_logs : 0;
+                    var su = s.suspended_or_inactive != null ? s.suspended_or_inactive : 0;
+                    document.getElementById('statUsers').textContent = u;
+                    document.getElementById('statPlants').textContent = p;
+                    document.getElementById('statLogs').textContent = l;
+                    document.getElementById('statSuspended').textContent = su;
+                    setBars(u, p, l);
+                }
+            } catch (e) {
+                document.getElementById('statUsers').textContent = '!';
+            }
+
+            try {
+                var cr = await fetch(API + '/api/admin/chart-insights', { credentials: 'include' });
+                if (cr.ok) {
+                    var ch = await cr.json();
+                    applyPie(ch.by_action || {});
+                    applyHbars(ch.by_action || {});
+                    applyLine(ch.daily || []);
+                }
+            } catch (e) {}
+
+            try {
+                var ar = await fetch(API + '/api/admin/user-analytics', { credentials: 'include' });
+                if (ar.ok) {
+                    FlorabitWeb.renderUserAnalyticsCharts(document.getElementById('userAnalyticsDash'), await ar.json());
+                } else {
+                    FlorabitWeb.renderUserAnalyticsCharts(document.getElementById('userAnalyticsDash'), null);
+                }
+            } catch (e) {
+                FlorabitWeb.renderUserAnalyticsCharts(document.getElementById('userAnalyticsDash'), null);
+            }
+
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

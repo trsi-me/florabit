@@ -1,0 +1,22 @@
+# خدمة ويب واحدة: /api + لوحة الأدمن + Flutter Web تحت /app/ (بعد نسخ build/web إلى web/flutter_web).
+# قبل الدفع لرندر: من app/app شغّل flutter build web --base-href /app/ ثم انسخ build/web/* → web/flutter_web/
+
+services:
+  - type: web
+    name: florabit
+    runtime: python
+    plan: free
+    rootDir: web
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.16"
+      - key: FLORABIT_SECRET_KEY
+        generateValue: true
+      # اختياري: بريد مستخدم يُرفَع تلقائياً لصلاحية admin عند أول تشغيل بدون مدير
+      # - key: FLORABIT_ADMIN_EMAIL
+      #   sync: false
+      # اختياري: أصول إضافية لـ CORS (مفصولة بفواصل) إن وضعت واجهة ويب للتطبيق على نطاق آخر
+      # - key: FLORABIT_CORS_ORIGINS
+      #   sync: false

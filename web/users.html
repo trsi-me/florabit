@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المستخدمون — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">المستخدمون</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">المستخدمون</h1>
+                <p class="fb-page-lead">تعليق، تفعيل، حذف، وتغيير الدور.</p>
+
+                <div class="fb-card" id="adminPanel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <h2 class="fb-card__title" style="margin:0;">القائمة</h2>
+                        <button type="button" class="btn btn-primary" onclick="showAddForm()"><span class="btn__label">إضافة</span></button>
+                    </div>
+                    <div id="usersList" style="margin-top:16px;"></div>
+                </div>
+
+                <div id="userFormModal" class="fb-card" style="display: none;">
+                    <h2 class="fb-card__title" id="userFormTitle">إضافة مستخدم</h2>
+                    <form id="userForm">
+                        <div class="form-group">
+                            <label for="userName">الاسم</label>
+                            <input type="text" id="userName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">البريد</label>
+                            <input type="email" id="userEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPassword">كلمة المرور</label>
+                            <input type="password" id="userPassword" required minlength="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="userRole">الدور</label>
+                            <select id="userRole">
+                                <option value="user">مستخدم</option>
+                                <option value="admin">مدير</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><span class="btn__label">حفظ</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="hideForm()" style="margin-right: 12px;">إلغاء</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        async function loadUsers() {
+            const res = await fetch(API + '/api/users', { credentials: 'include' });
+            if (res.status === 403) {
+                document.getElementById('usersList').innerHTML = '<p>—</p>';
+                return;
+            }
+            const users = await res.json();
+            if (!users.length) {
+                document.getElementById('usersList').innerHTML = '<p>لا يوجد مستخدمون.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>#</th><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th></th></tr></thead><tbody>';
+            users.forEach(function (u) {
+                const role = u.role || 'user';
+                const active = (u.is_active === 0 || u.is_active === '0') ? 'موقوف' : 'نشط';
+                const susp = u.suspended_until ? (' حتى ' + esc(String(u.suspended_until).slice(0, 10))) : '';
+                html += '<tr><td>' + u.id + '</td><td>' + esc(u.name) + '</td><td>' + esc(u.email) + '</td><td>' + esc(role) + '</td><td>' + esc(active + susp) + '</td><td class="actions-cell">';
+                html += '<button class="btn btn-secondary" onclick="editRole(' + u.id + ',\'' + role + '\')">دور</button> ';
+                if (active.indexOf('نشط') >= 0) {
+                    html += '<button class="btn btn-secondary" onclick="suspendUser(' + u.id + ')">تعليق</button> ';
+                } else {
+                    html += '<button class="btn btn-secondary" onclick="activateUser(' + u.id + ')">تفعيل</button> ';
+                }
+                html += '<button class="btn btn-danger" onclick="deleteUser(' + u.id + ')">حذف</button>';
+                html += '</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('usersList').innerHTML = html;
+        }
+
+        function showAddForm() {
+            document.getElementById('userFormTitle').textContent = 'إضافة مستخدم';
+            document.getElementById('userForm').reset();
+            document.getElementById('userFormModal').style.display = 'block';
+        }
+
+        function hideForm() {
+            document.getElementById('userFormModal').style.display = 'none';
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                password: document.getElementById('userPassword').value,
+                role: document.getElementById('userRole').value
+            };
+            const res = await fetch(API + '/api/users', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                alert(result.error || 'خطأ');
+                return;
+            }
+            hideForm();
+            loadUsers();
+        });
+
+        async function suspendUser(id) {
+            if (!confirm('تعليق 30 يوماً؟')) return;
+            const res = await fetch(API + '/api/users/' + id + '/suspend', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ days: 30 })
+            });
+            const j = await res.json();
+            if (!res.ok) { alert(j.error || 'فشل'); return; }
+            loadUsers();
+        }
+
+        async function activateUser(id) {
+            const res = await fetch(API + '/api/users/' + id + '/activate', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (!res.ok) { const j = await res.json(); alert(j.error || 'فشل'); return; }
+            loadUsers();
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('حذف نهائي مع البيانات المرتبطة؟')) return;
+            const res = await fetch(API + '/api/users/' + id, { method: 'DELETE', credentials: 'include' });
+            const j = await res.json();
+            if (!res.ok) { alert(j.error || 'فشل'); return; }
+            loadUsers();
+        }
+
+        async function editRole(id, current) {
+            const next = current === 'admin' ? 'user' : 'admin';
+            if (!confirm('تغيير الدور؟')) return;
+            const res = await fetch(API + '/api/users/' + id, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: next })
+            });
+            const j = await res.json();
+            if (!res.ok) { alert(j.error || 'فشل'); return; }
+            loadUsers();
+        }
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('users', me);
+            FlorabitWeb.renderFooter();
+            loadUsers();
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

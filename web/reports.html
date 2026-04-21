@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقارير والتحليل — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">تقارير المدير</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <h1 class="fb-page-title">التقارير والتحليل</h1>
+                <p class="fb-page-lead">أرقام النظام، تحليل المستخدمين، تصدير متعدد الصيغ، وجدول المواعيد القادمة.</p>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">ملخص الأرقام</h2>
+                    <div class="fb-stats" id="repStats">
+                        <div class="fb-stat"><div class="fb-stat__value" id="rUsers">—</div><div class="fb-stat__label">مستخدمون</div></div>
+                        <div class="fb-stat"><div class="fb-stat__value" id="rPlants">—</div><div class="fb-stat__label">نباتات</div></div>
+                        <div class="fb-stat"><div class="fb-stat__value" id="rLogs">—</div><div class="fb-stat__label">سجلات</div></div>
+                        <div class="fb-stat"><div class="fb-stat__value" id="rSusp">—</div><div class="fb-stat__label">موقوفون</div></div>
+                    </div>
+                </div>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">تصدير التقارير</h2>
+                    <p class="fb-card__sub">يُجمَع من قاعدة البيانات الحالية: إحصائيات، مستخدمون، نباتات، وسجلات عناية (حد أقصى 5000 سجل في التصدير).</p>
+                    <div class="fb-export-grid" id="exportLinks"></div>
+                </div>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">رؤية وتحليل بيانات المستخدمين</h2>
+                    <p class="fb-card__sub">رسوم بيانية وتجميعات تُحسب مباشرة من جداول <code>users</code> و <code>plants</code> في ملف SQLite.</p>
+                    <div id="analyticsMount"></div>
+                </div>
+
+                <div class="fb-card">
+                    <h2 class="fb-card__title">مواعيد العناية القادمة (كل النباتات)</h2>
+                    <p class="fb-card__sub">يُحدّد التأخير تلقائياً من آخر ري/تسميد والفترات المخزّنة.</p>
+                    <div class="fb-table-wrap" id="upcomingTable"></div>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        function exportHref(fmt) {
+            return API + '/api/admin/report-export?format=' + encodeURIComponent(fmt);
+        }
+
+        function buildExportButtons() {
+            const fmts = [
+                { f: 'json', label: 'JSON' },
+                { f: 'csv', label: 'CSV' },
+                { f: 'txt', label: 'TXT' },
+                { f: 'sql', label: 'SQL (SQLite)' },
+                { f: 'mysql', label: 'MySQL' },
+                { f: 'xlsx', label: 'Excel XLSX' },
+                { f: 'pdf', label: 'PDF' },
+            ];
+            const el = document.getElementById('exportLinks');
+            el.innerHTML = fmts.map(function (x) {
+                return '<a class="btn btn-secondary" href="' + esc(exportHref(x.f)) + '"><span class="btn__label">' + esc(x.label) + '</span></a>';
+            }).join('');
+        }
+
+        function renderAnalytics(a) {
+            FlorabitWeb.renderUserAnalyticsCharts(document.getElementById('analyticsMount'), a);
+        }
+
+        (async function () {
+            const me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('reports', me);
+            FlorabitWeb.renderFooter();
+            buildExportButtons();
+
+            try {
+                const sr = await fetch(API + '/api/admin/stats', { credentials: 'include' });
+                if (sr.ok) {
+                    const s = await sr.json();
+                    document.getElementById('rUsers').textContent = s.users != null ? s.users : '0';
+                    document.getElementById('rPlants').textContent = s.plants != null ? s.plants : '0';
+                    document.getElementById('rLogs').textContent = s.care_logs != null ? s.care_logs : '0';
+                    document.getElementById('rSusp').textContent = s.suspended_or_inactive != null ? s.suspended_or_inactive : '0';
+                }
+            } catch (e) {}
+
+            try {
+                const ar = await fetch(API + '/api/admin/user-analytics', { credentials: 'include' });
+                if (ar.ok) {
+                    renderAnalytics(await ar.json());
+                } else {
+                    renderAnalytics(null);
+                }
+            } catch (e) {
+                renderAnalytics(null);
+            }
+
+            try {
+                const ur = await fetch(API + '/api/plants/upcoming-care', { credentials: 'include' });
+                if (!ur.ok) {
+                    document.getElementById('upcomingTable').innerHTML = '<p>تعذر تحميل الجدول.</p>';
+                } else {
+                    const rows = await ur.json();
+                    if (!rows.length) {
+                        document.getElementById('upcomingTable').innerHTML = '<p>لا نباتات مسجّلة.</p>';
+                    } else {
+                        let html = '<table><thead><tr><th>النبتة</th><th>ري تالي</th><th>تسميد تالي</th><th>تأخير ري</th><th>تأخير تسميد</th></tr></thead><tbody>';
+                        rows.slice(0, 80).forEach(function (r) {
+                            html += '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.next_watering) + '</td><td>' + esc(r.next_fertilizing) + '</td>';
+                            html += '<td>' + (r.watering_overdue ? 'نعم' : 'لا') + '</td><td>' + (r.fertilizing_overdue ? 'نعم' : 'لا') + '</td></tr>';
+                        });
+                        html += '</tbody></table>';
+                        document.getElementById('upcomingTable').innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                document.getElementById('upcomingTable').innerHTML = '<p>خطأ في الشبكة.</p>';
+            }
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

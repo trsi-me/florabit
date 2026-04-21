@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فلورابيت — بوابة النظام</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="fb-index-redirect">
+    <div class="fb-redirect-center">
+        <img src="assets/images/Logo.png" alt="" class="fb-redirect-logo" width="88" height="88">
+        <p class="fb-text-lead">…</p>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        (async function () {
+            const API = FlorabitWeb.API;
+            const me = await FlorabitWeb.authMe();
+            if (me.logged_in && me.role === 'admin') {
+                window.location.replace('dashboard.html');
+                return;
+            }
+            if (me.logged_in) {
+                try {
+                    await fetch(API + '/api/logout', { method: 'POST', credentials: 'include' });
+                } catch (e) {}
+                try { localStorage.removeItem('user'); } catch (e) {}
+            }
+            window.location.replace('login.html');
+        })();
+    </script>
+</body>
+</html>
