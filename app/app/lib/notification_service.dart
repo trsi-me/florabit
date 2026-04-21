@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +21,10 @@ class NotificationService {
   );
 
   static Future<void> initialize() async {
+    if (kIsWeb) {
+      _ready = true;
+      return;
+    }
     if (_ready) return;
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
@@ -36,7 +39,7 @@ class NotificationService {
     } catch (_) {
       tz.setLocalLocation(tz.UTC);
     }
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       await android?.createNotificationChannel(_channel);
@@ -46,10 +49,12 @@ class NotificationService {
   }
 
   static Future<void> cancelAllCare() async {
+    if (kIsWeb) return;
     await _plugin.cancelAll();
   }
 
   static Future<void> syncCareReminders(int? userId) async {
+    if (kIsWeb) return;
     if (!_ready) await initialize();
     var enabled = true;
     try {
