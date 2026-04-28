@@ -164,7 +164,7 @@ def seed_cities_and_catalog_if_empty(conn):
 
 
 def migrate_users_city_id(conn):
-    """يربط users.city النصي بـ city_id عند وجود تطابق اسم."""
+    # يربط users.city النصي بـ city_id عند وجود تطابق اسم.
     try:
         cursor = conn.cursor()
         cursor.execute('PRAGMA table_info(users)')
@@ -206,7 +206,7 @@ def resolve_city_id(cursor, city_name):
 
 
 def backfill_catalog_plant_fields(conn):
-    """يملأ care_level والطوابع لصفوف كتالوج قديمة بعد إضافة الأعمدة."""
+    # يملأ care_level والطوابع لصفوف كتالوج قديمة بعد إضافة الأعمدة.
     try:
         from plant_model import PLANT_DATABASE, _care_level_for_plant
 

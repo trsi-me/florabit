@@ -11,6 +11,7 @@ import '../app_theme.dart';
 import '../notification_service.dart';
 import '../session_store.dart';
 import '../user_provider.dart';
+import 'care_report_screen.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -362,6 +363,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   value: _publicScanConsent,
                   onChanged: _savingConsent ? null : _setPublicScanConsent,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'التقارير',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.print_outlined, color: scheme.primary),
+                  title: const Text('تقرير عناية النباتات'),
+                  subtitle: Text(
+                    'آخر ري وتسميد وملاحظات — طباعة أو مشاركة PDF',
+                    style: TextStyle(fontSize: 12, color: scheme.onSurface.withOpacity(0.6)),
+                  ),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(builder: (_) => const CareReportScreen()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 Text(

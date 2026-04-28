@@ -645,6 +645,103 @@ def get_plants():
     return jsonify(plants)
 
 
+@app.route('/api/plants/care-report', methods=['GET'])
+def plants_care_report():
+    sid = session.get('user_id')
+    hdr = request.headers.get('X-User-Id')
+    try:
+        hdr_uid = int(hdr) if hdr is not None and str(hdr).strip() != '' else None
+    except (TypeError, ValueError):
+        hdr_uid = None
+    if sid is None and hdr_uid is None:
+        return jsonify({'error': 'يجب تسجيل الدخول'}), 401
+    conn = get_db()
+    cursor = conn.cursor()
+    if sid is not None:
+        actor_id = int(sid)
+        role = session.get('role') or 'user'
+    else:
+        cursor.execute(
+            "SELECT COALESCE(role,'user') FROM users WHERE id = ?",
+            (hdr_uid,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            conn.close()
+            return jsonify({'error': 'المستخدم غير موجود'}), 404
+        role = row[0] or 'user'
+        actor_id = hdr_uid
+    q_uid = request.args.get('user_id', type=int)
+    if role == 'admin':
+        target_id = q_uid if q_uid is not None else actor_id
+    else:
+        if q_uid is not None and int(q_uid) != int(actor_id):
+            conn.close()
+            return jsonify({'error': 'غير مصرّح'}), 403
+        target_id = actor_id
+    cursor.execute('SELECT name FROM users WHERE id = ?', (target_id,))
+    ur = cursor.fetchone()
+    if ur is None:
+        conn.close()
+        return jsonify({'error': 'المستخدم غير موجود'}), 404
+    user_name = ur[0]
+    cursor.execute(
+        '''SELECT id, name, type, notes, last_watering_date, last_fertilizing_date
+           FROM plants WHERE user_id = ? ORDER BY name COLLATE NOCASE''',
+        (target_id,),
+    )
+    plants = [dict(row) for row in cursor.fetchall()]
+    generated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if not plants:
+        conn.close()
+        return jsonify({
+            'user_id': target_id,
+            'user_name': user_name,
+            'generated_at': generated_at,
+            'plants': [],
+        })
+    pids = [p['id'] for p in plants]
+    ph = ','.join(['?'] * len(pids))
+    cursor.execute(
+        f'''SELECT plant_id, action_type, action_date, notes FROM care_logs
+            WHERE plant_id IN ({ph}) AND action_type IN ('watering', 'fertilizing')
+            ORDER BY action_date DESC, id DESC''',
+        pids,
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    last_w = {}
+    last_f = {}
+    for r in rows:
+        pid = r['plant_id']
+        at = r['action_type']
+        if at == 'watering' and pid not in last_w:
+            last_w[pid] = r
+        elif at == 'fertilizing' and pid not in last_f:
+            last_f[pid] = r
+    out = []
+    for p in plants:
+        pid = p['id']
+        lw = last_w.get(pid)
+        lf = last_f.get(pid)
+        out.append({
+            'id': pid,
+            'name': p['name'],
+            'type': p.get('type'),
+            'plant_notes': (p.get('notes') or '').strip(),
+            'last_watering_date': p.get('last_watering_date') or (lw['action_date'] if lw else None),
+            'last_fertilizing_date': p.get('last_fertilizing_date') or (lf['action_date'] if lf else None),
+            'last_watering_notes': (lw.get('notes') or '').strip() if lw else '',
+            'last_fertilizing_notes': (lf.get('notes') or '').strip() if lf else '',
+        })
+    return jsonify({
+        'user_id': target_id,
+        'user_name': user_name,
+        'generated_at': generated_at,
+        'plants': out,
+    })
+
+
 @app.route('/api/plants', methods=['POST'])
 def create_plant():
     data = request.get_json()

@@ -185,4 +185,19 @@ class ApiService {
     );
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
+
+  /// تقرير عناية كل النباتات (للطباعة من التطبيق). يعتمد على [X-User-Id] عند عدم وجود جلسة ويب.
+  static Future<Map<String, dynamic>> getPlantsCareReport({int? forUserId}) async {
+    final q = forUserId != null ? '?user_id=$forUserId' : '';
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/plants/care-report$q'),
+      headers: _jsonHeadersWithUser(),
+    );
+    final body = jsonDecode(res.body);
+    if (res.statusCode != 200) {
+      final err = body is Map<String, dynamic> ? body['error'] : null;
+      throw Exception(err?.toString() ?? 'تعذر تحميل التقرير');
+    }
+    return body as Map<String, dynamic>;
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +14,8 @@ import 'screens/auth_gate.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb) {
-    await NotificationService.initialize();
+    // تهيئة الإشعارات وقاعدة timezone ثقيلة؛ لا تؤخّر أول إطار وشاشة الجلسة.
+    unawaited(NotificationService.initialize());
   }
   final settings = AppSettings();
   if (!kIsWeb) {

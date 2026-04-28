@@ -197,7 +197,7 @@ def _table_count(conn, table):
 
 
 def get_plant_rows():
-    """صفوف الكتالوج: من SQLite إن وُجدت، وإلا من PLANT_DATABASE (للتعرف اللوني وML)."""
+    # صفوف الكتالوج: من SQLite إن وُجدت، وإلا من PLANT_DATABASE (للتعرف اللوني وML).
     global _PLANT_ROWS_CACHE
     if _PLANT_ROWS_CACHE is not None:
         return _PLANT_ROWS_CACHE

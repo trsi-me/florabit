@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""نقطة دخول WSGI من جذر المستودع (Render يشغّل غالباً من هنا بدون --chdir web)."""
+# نقطة دخول WSGI من جذر المستودع (Render يشغّل غالباً من هنا بدون --chdir web).
 import os
 import sys
 

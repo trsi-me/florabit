@@ -13,6 +13,7 @@ const FlorabitWeb = (function () {
     personAdd: '<i class="fa-solid fa-user-plus fa-fw fb-fa" aria-hidden="true"></i>',
     project: '<i class="fa-solid fa-seedling fa-fw fb-fa" aria-hidden="true"></i>',
     logout: '<i class="fa-solid fa-right-from-bracket fa-fw fb-fa" aria-hidden="true"></i>',
+    print: '<i class="fa-solid fa-print fa-fw fb-fa" aria-hidden="true"></i>',
   };
 
   function navLink(href, id, activeId, label, iconHtml) {
@@ -120,6 +121,7 @@ const FlorabitWeb = (function () {
     let html = '';
     html += navLink('dashboard.html', 'dashboard', activeId, 'لوحة التحكم', ico.dash);
     html += navLink('plants.html', 'plants', activeId, 'النباتات', ico.leaf);
+    html += navLink('plant_care_report.html', 'care_report', activeId, 'تقرير العناية', ico.print);
     html += navLink('catalog.html', 'catalog', activeId, 'الكتالوج', ico.book);
     html += navLink('reports.html', 'reports', activeId, 'التقارير', ico.chart);
     html += navLink('about.html', 'about', activeId, 'عن النظام', ico.info);

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير العناية — فلورابيت</title>
+    <link rel="stylesheet" href="static/style.css">
+    <style>
+        @media print {
+            .fb-print-hide { display: none !important; }
+            .fb-shell { max-width: 100%; padding: 12px; }
+            body { background: #fff; }
+            .fb-care-report table { font-size: 13px; }
+        }
+        .fb-care-report__meta { color: var(--fb-muted); margin-bottom: 16px; font-size: 0.95em; }
+        .fb-care-report table { width: 100%; border-collapse: collapse; }
+        .fb-care-report th, .fb-care-report td {
+            border: 1px solid var(--fb-border);
+            padding: 10px 12px;
+            text-align: right;
+            vertical-align: top;
+        }
+        .fb-care-report thead th { background: var(--fb-green-soft); }
+    </style>
+</head>
+<body class="fb-app">
+    <div class="fb-shell">
+        <header class="fb-header fb-print-hide">
+            <a href="dashboard.html" class="fb-brand">
+                <img src="assets/images/Logo.png" alt="">
+                <span class="fb-brand__texts">
+                    <span class="fb-brand__title">فلورابيت</span>
+                    <span class="fb-brand__sub">تقرير العناية</span>
+                </span>
+            </a>
+            <nav id="fb-nav-slot"></nav>
+        </header>
+
+        <main class="fb-main">
+            <div class="fb-main-inner">
+                <div class="fb-card fb-print-hide" style="margin-bottom: 16px;">
+                    <h2 class="fb-card__title" style="margin-top:0;">تقرير العناية للطباعة</h2>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                        <label for="reportUserId" style="margin:0;">المستخدم</label>
+                        <select id="reportUserId" style="min-width:200px;padding:8px;border-radius:var(--fb-radius-sm);border:1px solid var(--fb-border);"></select>
+                        <button type="button" class="btn btn-primary" id="btnLoadReport"><span class="btn__label">تحديث التقرير</span></button>
+                        <button type="button" class="btn btn-primary" id="btnPrint" style="background:var(--fb-green-deep);border-color:transparent;">
+                            <span class="btn__label">طباعة التقرير (أو Ctrl+P)</span>
+                        </button>
+                    </div>
+                    <p class="fb-card__sub" style="margin-top:10px;margin-bottom:0;">للمسؤول: اختر المستخدم ثم «تحديث التقرير». الزر الأخضر الداكن يفتح نافذة الطباعة.</p>
+                </div>
+
+                <div id="reportError" class="fb-card" style="display:none;color:var(--fb-danger);"></div>
+
+                <div class="fb-card fb-care-report" id="reportBody" style="display:none;">
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <h1 class="fb-page-title" style="font-size:1.35rem;margin:0;">تقرير عناية النباتات</h1>
+                        <button type="button" class="btn btn-primary fb-print-hide" id="btnPrintInline" style="background:var(--fb-green-deep);border-color:transparent;">
+                            <span class="btn__label">طباعة هذا التقرير</span>
+                        </button>
+                    </div>
+                    <div class="fb-care-report__meta" id="reportMeta"></div>
+                    <div id="reportTableWrap"></div>
+                </div>
+            </div>
+        </main>
+        <footer id="fb-footer" class="fb-print-hide"></footer>
+    </div>
+    <script src="static/florabit-web.js"></script>
+    <script>
+        const API = FlorabitWeb.API;
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+
+        function dash(v) {
+            if (v == null || String(v).trim() === '') return '—';
+            return String(v);
+        }
+
+        async function loadUsersForAdmin(selectEl) {
+            const res = await fetch(API + '/api/users', { credentials: 'include' });
+            if (!res.ok) return;
+            const users = await res.json();
+            selectEl.innerHTML = users.map(function (u) {
+                return '<option value="' + u.id + '">' + esc(u.name) + ' (' + esc(u.email) + ')</option>';
+            }).join('');
+        }
+
+        function renderReport(data) {
+            var err = document.getElementById('reportError');
+            var body = document.getElementById('reportBody');
+            var wrap = document.getElementById('reportTableWrap');
+            var meta = document.getElementById('reportMeta');
+            err.style.display = 'none';
+            body.style.display = 'block';
+            meta.innerHTML =
+                '<strong>المستخدم:</strong> ' + esc(data.user_name) +
+                ' &nbsp;|&nbsp; <strong>تاريخ الإنشاء:</strong> ' + esc(data.generated_at);
+            if (!data.plants || !data.plants.length) {
+                wrap.innerHTML = '<p>لا توجد نباتات لهذا المستخدم.</p>';
+                return;
+            }
+            var html = '<table><thead><tr>' +
+                '<th>النبتة</th><th>النوع</th><th>آخر ري</th><th>ملاحظات الري</th>' +
+                '<th>آخر تسميد</th><th>ملاحظات التسميد</th><th>ملاحظات النبتة</th>' +
+                '</tr></thead><tbody>';
+            data.plants.forEach(function (p) {
+                html += '<tr>' +
+                    '<td>' + esc(p.name) + '</td>' +
+                    '<td>' + esc(p.type) + '</td>' +
+                    '<td>' + esc(dash(p.last_watering_date)) + '</td>' +
+                    '<td>' + esc(dash(p.last_watering_notes)) + '</td>' +
+                    '<td>' + esc(dash(p.last_fertilizing_date)) + '</td>' +
+                    '<td>' + esc(dash(p.last_fertilizing_notes)) + '</td>' +
+                    '<td>' + esc(dash(p.plant_notes)) + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+        }
+
+        async function fetchReport(userId) {
+            var err = document.getElementById('reportError');
+            var body = document.getElementById('reportBody');
+            var q = userId != null ? ('?user_id=' + encodeURIComponent(String(userId))) : '';
+            var res = await fetch(API + '/api/plants/care-report' + q, { credentials: 'include' });
+            var j = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                body.style.display = 'none';
+                err.style.display = 'block';
+                err.textContent = j.error || 'تعذر تحميل التقرير.';
+                return;
+            }
+            renderReport(j);
+        }
+
+        function doPrint() {
+            window.print();
+        }
+
+        (async function () {
+            var me = await FlorabitWeb.requireAdmin();
+            if (!me) return;
+            FlorabitWeb.mountAppNav('care_report', me);
+            FlorabitWeb.renderFooter();
+            var sel = document.getElementById('reportUserId');
+            var admin = me.role === 'admin';
+            if (admin) {
+                await loadUsersForAdmin(sel);
+                var params = new URLSearchParams(window.location.search);
+                var fromUrl = params.get('user_id');
+                if (fromUrl) sel.value = String(fromUrl);
+            } else {
+                sel.innerHTML = '<option value="' + me.user.id + '">' + esc(me.user.name) + '</option>';
+                sel.disabled = true;
+                sel.closest('.fb-card').querySelector('label[for="reportUserId"]').textContent = 'الحساب';
+                var sub = document.querySelector('.fb-print-hide .fb-card__sub');
+                if (sub) sub.style.display = 'none';
+            }
+
+            document.getElementById('btnLoadReport').addEventListener('click', function () {
+                var uid = parseInt(sel.value, 10);
+                if (admin) fetchReport(uid);
+                else fetchReport(null);
+            });
+            document.getElementById('btnPrint').addEventListener('click', doPrint);
+            document.getElementById('btnPrintInline').addEventListener('click', doPrint);
+
+            if (admin) {
+                fetchReport(parseInt(sel.value, 10));
+            } else {
+                fetchReport(null);
+            }
+            FlorabitWeb.pageReady();
+        })();
+    </script>
+</body>
+</html>

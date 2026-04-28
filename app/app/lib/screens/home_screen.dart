@@ -6,6 +6,7 @@ import '../app_theme.dart';
 import 'add_plant_screen.dart';
 import 'plant_details_screen.dart';
 import 'identify_plant_screen.dart';
+import 'care_report_screen.dart';
 import 'plant_gallery_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -46,12 +47,16 @@ class HomeScreenState extends State<HomeScreen>
     setState(() => _loading = true);
     try {
       final uid = UserProvider.userId;
-      final plants = await ApiService.getPlants(uid);
-      Map<String, dynamic>? summary;
+      final plantsFuture = ApiService.getPlants(uid);
+      final summaryFuture = uid != null
+          ? ApiService.getSmartSummary(uid).then<Map<String, dynamic>?>((s) => s).catchError((_) => null)
+          : Future<Map<String, dynamic>?>.value(null);
+      final results = await Future.wait([plantsFuture, summaryFuture]);
+      final plants = results[0] as List<dynamic>;
+      final summary = results[1] as Map<String, dynamic>?;
       final health = <int, int>{};
-      if (uid != null) {
+      if (summary != null) {
         try {
-          summary = await ApiService.getSmartSummary(uid);
           final sp = summary['plants'] as List<dynamic>? ?? [];
           for (final x in sp) {
             final m = x as Map<String, dynamic>;
@@ -136,8 +141,10 @@ class HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
+        // الطباعة في آخر القائمة حتى لا تُطوى أولاً على الشاشات الضيقة (RTL).
         actions: [
           IconButton(
+            tooltip: 'معرض النباتات',
             icon: const Icon(Icons.photo_library_outlined),
             onPressed: () => Navigator.push(
               context,
@@ -145,10 +152,19 @@ class HomeScreenState extends State<HomeScreen>
             ).then((_) => _loadPlants()),
           ),
           IconButton(
+            tooltip: 'التعرف على النبتة',
             icon: const Icon(Icons.camera_alt_outlined),
             onPressed: () => Navigator.push(
               context,
               AppTheme.slideRoute(const IdentifyPlantScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'تقرير العناية والطباعة',
+            icon: const Icon(Icons.print_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              AppTheme.slideRoute(const CareReportScreen()),
             ),
           ),
         ],
@@ -287,6 +303,24 @@ class HomeScreenState extends State<HomeScreen>
                     fontSize: 13,
                     height: 1.45,
                     color: scheme.onSurface.withValues(alpha: 0.68),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        AppTheme.slideRoute(const CareReportScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.print_outlined, size: 22),
+                    label: const Text('تقرير العناية — طباعة PDF'),
+                    style: FilledButton.styleFrom(
+                      foregroundColor: AppTheme.primaryDark,
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                    ),
                   ),
                 ),
               ],

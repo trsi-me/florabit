@@ -19,6 +19,24 @@ class _PlantGalleryScreenState extends State<PlantGalleryScreen> {
   String? _selectedHomeType;
   bool _loading = true;
 
+  /// يحافظ على الترتيب ويمنع تكرار القيم — تكرار المدن يكسر DropdownButton.
+  static List<String> _distinctOrdered(List<String> raw) {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final s in raw) {
+      if (seen.add(s)) out.add(s);
+    }
+    return out;
+  }
+
+  /// قيمة آمنة للقائمة: يجب أن تطابق عنصراً واحداً فقط، أو null أثناء التحميل.
+  static String? _safeDropdownValue(String? selected, List<String> items) {
+    if (selected == null) return null;
+    final n = items.where((x) => x == selected).length;
+    if (n == 1) return selected;
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -40,9 +58,15 @@ class _PlantGalleryScreenState extends State<PlantGalleryScreen> {
       ]);
       if (mounted) {
         setState(() {
-          _cities = List<String>.from(results[0]);
-          _homeTypes = List<String>.from(results[1]);
+          _cities = _distinctOrdered(List<String>.from(results[0]));
+          _homeTypes = _distinctOrdered(List<String>.from(results[1]));
           _plants = List<dynamic>.from(results[2]);
+          if (_selectedCity != null && !_cities.contains(_selectedCity)) {
+            _selectedCity = null;
+          }
+          if (_selectedHomeType != null && !_homeTypes.contains(_selectedHomeType)) {
+            _selectedHomeType = null;
+          }
           _loading = false;
         });
       }
@@ -186,7 +210,7 @@ class _PlantGalleryScreenState extends State<PlantGalleryScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String?>(
-                  value: _selectedCity,
+                  value: _safeDropdownValue(_selectedCity, _cities),
                   dropdownColor: isDark ? scheme.surface : null,
                   style: TextStyle(
                     color: isDark ? Colors.white : scheme.onSurface,
@@ -215,7 +239,7 @@ class _PlantGalleryScreenState extends State<PlantGalleryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String?>(
-                  value: _selectedHomeType,
+                  value: _safeDropdownValue(_selectedHomeType, _homeTypes),
                   dropdownColor: isDark ? scheme.surface : null,
                   style: TextStyle(
                     color: isDark ? Colors.white : scheme.onSurface,
